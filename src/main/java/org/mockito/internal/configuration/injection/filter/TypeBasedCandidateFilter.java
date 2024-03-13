@@ -24,6 +24,8 @@ import org.mockito.internal.util.MockUtil;
 
 public class TypeBasedCandidateFilter implements MockCandidateFilter {
 
+    public static final String GENERICS_SUPPORT_DISABLED =
+            "mockito.typeBasedCandidateFilter.genericsSupport.disabled";
     private final MockCandidateFilter next;
 
     public TypeBasedCandidateFilter(MockCandidateFilter next) {
@@ -230,23 +232,28 @@ public class TypeBasedCandidateFilter implements MockCandidateFilter {
             final List<Field> allRemainingCandidateFields,
             final Object injectee,
             final Field injectMocksField) {
+        boolean genericsSupportEnabled = System.getProperty(GENERICS_SUPPORT_DISABLED) == null;
         List<Object> mockTypeMatches = new ArrayList<>();
         for (Object mock : mocks) {
             if (candidateFieldToBeInjected.getType().isAssignableFrom(mock.getClass())) {
-                Type mockType = MockUtil.getMockSettings(mock).getGenericTypeToMock();
-                Type typeToMock = candidateFieldToBeInjected.getGenericType();
-                boolean bothHaveTypeInfo = typeToMock != null && mockType != null;
-                if (bothHaveTypeInfo) {
-                    // be more specific if generic type information is available
-                    if (isCompatibleTypes(typeToMock, mockType, injectMocksField)) {
+                if (genericsSupportEnabled) {
+                    Type mockType = MockUtil.getMockSettings(mock).getGenericTypeToMock();
+                    Type typeToMock = candidateFieldToBeInjected.getGenericType();
+                    boolean bothHaveTypeInfo = typeToMock != null && mockType != null;
+                    if (bothHaveTypeInfo) {
+                        // be more specific if generic type information is available
+                        if (isCompatibleTypes(typeToMock, mockType, injectMocksField)) {
+                            mockTypeMatches.add(mock);
+                        } // else filter out mock, as generic types don't match
+                    } else {
+                        // field is assignable from mock class, but no generic type information
+                        // is available (can happen with programmatically created Mocks where no
+                        // genericTypeToMock was supplied)
+                        System.out.println(
+                                "v6.5 field is assignable from mock class, but no generic type information is available ");
                         mockTypeMatches.add(mock);
-                    } // else filter out mock, as generic types don't match
+                    }
                 } else {
-                    // field is assignable from mock class, but no generic type information
-                    // is available (can happen with programmatically created Mocks where no
-                    // genericTypeToMock was supplied)
-                    System.out.println(
-                            "v6.5 field is assignable from mock class, but no generic type information is available ");
                     mockTypeMatches.add(mock);
                 }
             } // else filter out mock
