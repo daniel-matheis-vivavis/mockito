@@ -4,9 +4,11 @@
  */
 package org.mockito.internal.configuration.injection.filter;
 
+import static java.util.stream.Collectors.joining;
 import static org.mockito.internal.exceptions.Reporter.moreThanOneMockCandidate;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.GenericDeclaration;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
@@ -15,6 +17,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Stream;
 
 import org.mockito.internal.util.MockUtil;
@@ -59,7 +62,7 @@ public class TypeBasedCandidateFilter implements MockCandidateFilter {
                         result = false;
                     }
                 }
-            } else {
+            } else if (mockType instanceof Class) {
                 // mockType is a non-parameterized Class, i.e. a concrete class.
                 // so walk concrete class' type hierarchy
                 Class<?> concreteMockClass = (Class<?>) mockType;
@@ -69,6 +72,21 @@ public class TypeBasedCandidateFilter implements MockCandidateFilter {
                                 mockSuperType ->
                                         isCompatibleTypes(
                                                 typeToMock, mockSuperType, injectMocksField));
+            } else {
+                // mockType neither ParameterizedType nor Class, but e.g. a TypeVariable
+                // which means that typeToMock and mockType are not compatible
+                System.out.println(
+                        "v6.1 mockType neither ParameterizedType nor Class, but e.g. a TypeVariable "
+                                + mockType);
+                if (mockType instanceof TypeVariable) {
+                    TypeVariable tyVar = (TypeVariable) mockType;
+                    System.out.println(
+                            "  details: typeVariable "
+                                    + tyVar
+                                    + ", "
+                                    + tyVar.getGenericDeclaration());
+                }
+                result = false;
             }
         } else if (typeToMock instanceof WildcardType) {
             WildcardType wildcardTypeToMock = (WildcardType) typeToMock;
@@ -121,11 +139,46 @@ public class TypeBasedCandidateFilter implements MockCandidateFilter {
                     TypeVariable<?>[] genericTypeParameters =
                             injectMocksField.getType().getTypeParameters();
                     int variableIndex = -1;
+                    String name2 = typeVariable.getName();
+                    GenericDeclaration genericDeclaration2 = typeVariable.getGenericDeclaration();
                     for (int i2 = 0; i2 < genericTypeParameters.length; i2++) {
+                        String name1 = genericTypeParameters[i2].getName();
+                        GenericDeclaration genericDeclaration1 =
+                                genericTypeParameters[i2].getGenericDeclaration();
                         if (genericTypeParameters[i2].equals(typeVariable)) {
                             variableIndex = i2;
                             break;
+                        } else if (Objects.equals(name1, name2)
+                                && genericDeclaration1 instanceof Class
+                                && genericDeclaration2 instanceof Class
+                                && ((Class) genericDeclaration2)
+                                        .isAssignableFrom((Class) genericDeclaration1)) {
+                            System.out.println(
+                                    "v6.4 "
+                                            + genericDeclaration2
+                                            + " is assignable from "
+                                            + genericDeclaration1);
+                            variableIndex = i2;
+                            break;
                         }
+                    }
+                    if (variableIndex == -1) {
+                        List<String> genericTypeParametersStrings = new ArrayList<>();
+                        for (TypeVariable<?> genericTypeParameter : genericTypeParameters) {
+                            GenericDeclaration genericDeclaration =
+                                    genericTypeParameter.getGenericDeclaration();
+                            genericTypeParametersStrings.add(
+                                    genericTypeParameter + ", " + genericDeclaration.toString());
+                        }
+                        throw new IllegalStateException(
+                                "v6.2 typeVariable "
+                                        + typeVariable
+                                        + ", "
+                                        + typeVariable.getGenericDeclaration()
+                                        + " was not found in ["
+                                        + genericTypeParametersStrings.stream()
+                                                .collect(joining(","))
+                                        + "]");
                     }
                     // now test whether actual type for the type variable is compatible, e.g. for
                     //   class ClassUnderTest<T1, T2> {..}
@@ -136,7 +189,7 @@ public class TypeBasedCandidateFilter implements MockCandidateFilter {
                                     injectMocksFieldTypeParameters[variableIndex],
                                     actualTypeArgument2,
                                     injectMocksField);
-                } else {
+                } else if (genericType instanceof Class) {
                     // must be a concrete class, recurse on super types that may have type
                     // parameters
                     isCompatible &=
@@ -147,6 +200,19 @@ public class TypeBasedCandidateFilter implements MockCandidateFilter {
                                                             superType,
                                                             actualTypeArgument2,
                                                             injectMocksField));
+                } else {
+                    System.out.println(
+                            "v6.3 injectMocksField.getGenericType(): "
+                                    + genericType
+                                    + " is not instanceof Class");
+                    if (genericType instanceof TypeVariable) {
+                        TypeVariable tyVar = (TypeVariable) genericType;
+                        System.out.println(
+                                "  details for TypeVariable "
+                                        + tyVar
+                                        + ", "
+                                        + tyVar.getGenericDeclaration());
+                    }
                 }
             } else {
                 isCompatible &=
@@ -179,6 +245,8 @@ public class TypeBasedCandidateFilter implements MockCandidateFilter {
                     // field is assignable from mock class, but no generic type information
                     // is available (can happen with programmatically created Mocks where no
                     // genericTypeToMock was supplied)
+                    System.out.println(
+                            "v6.5 field is assignable from mock class, but no generic type information is available ");
                     mockTypeMatches.add(mock);
                 }
             } // else filter out mock
