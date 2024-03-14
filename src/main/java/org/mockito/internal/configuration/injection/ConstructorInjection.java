@@ -37,6 +37,16 @@ import org.mockito.internal.util.reflection.FieldInitializer.ConstructorArgument
  */
 public class ConstructorInjection extends MockInjectionStrategy {
 
+    private static final String ALWAYS_TRY_NEXT_STRATEGY_ENABLED_KEY =
+            "mockito.constructorInjection.alwaysTryNextStrategy.enabled";
+    private static final boolean ALWAYS_TRY_NEXT_STRATEGY_ENABLED =
+            System.getProperty(ALWAYS_TRY_NEXT_STRATEGY_ENABLED_KEY) != null;
+
+    static {
+        System.out.println(
+                "v6 ALWAYS_TRY_NEXT_STRATEGY_ENABLED: " + ALWAYS_TRY_NEXT_STRATEGY_ENABLED);
+    }
+
     public ConstructorInjection() {}
 
     @Override
@@ -47,6 +57,9 @@ public class ConstructorInjection extends MockInjectionStrategy {
             FieldInitializationReport report =
                     new FieldInitializer(fieldOwner, field, simpleArgumentResolver).initialize();
 
+            if (ALWAYS_TRY_NEXT_STRATEGY_ENABLED) {
+                return false;
+            }
             return report.fieldWasInitializedUsingContructorArgs();
         } catch (MockitoException e) {
             if (e.getCause() instanceof InvocationTargetException) {
@@ -62,6 +75,7 @@ public class ConstructorInjection extends MockInjectionStrategy {
      * Returns mocks that match the argument type, if not possible assigns null.
      */
     static class SimpleArgumentResolver implements ConstructorArgumentResolver {
+
         final Set<Object> objects;
 
         public SimpleArgumentResolver(Set<Object> objects) {
