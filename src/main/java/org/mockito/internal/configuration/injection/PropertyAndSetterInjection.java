@@ -4,7 +4,6 @@
  */
 package org.mockito.internal.configuration.injection;
 
-import static org.mockito.internal.configuration.injection.filter.TypeBasedCandidateFilter.GENERICS_SUPPORT_DISABLED;
 import static org.mockito.internal.exceptions.Reporter.cannotInitializeForInjectMocksAnnotation;
 import static org.mockito.internal.exceptions.Reporter.fieldInitialisationThrewException;
 import static org.mockito.internal.util.collections.Sets.newMockSafeHashSet;
@@ -72,8 +71,6 @@ public class PropertyAndSetterInjection extends MockInjectionStrategy {
             Field injectMocksField, Object injectMocksFieldOwner, Set<Object> mockCandidates) {
         FieldInitializationReport report =
                 initializeInjectMocksField(injectMocksField, injectMocksFieldOwner);
-        boolean genericsSupportEnabled = System.getProperty(GENERICS_SUPPORT_DISABLED) == null;
-        System.out.println("v6 genericsSupportEnabled:" + genericsSupportEnabled);
         // for each field in the class hierarchy
         boolean injectionOccurred = false;
         Class<?> fieldClass = report.fieldClass();

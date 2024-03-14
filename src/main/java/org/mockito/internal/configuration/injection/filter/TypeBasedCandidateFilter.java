@@ -24,8 +24,15 @@ import org.mockito.internal.util.MockUtil;
 
 public class TypeBasedCandidateFilter implements MockCandidateFilter {
 
-    public static final String GENERICS_SUPPORT_DISABLED =
+    private static final String GENERICS_SUPPORT_DISABLED_KEY =
             "mockito.typeBasedCandidateFilter.genericsSupport.disabled";
+    private static final boolean GENERICS_SUPPORT_ENABLED =
+            System.getProperty(GENERICS_SUPPORT_DISABLED_KEY) == null;
+
+    static {
+        System.out.println("v6 GENERICS_SUPPORT_ENABLED:" + GENERICS_SUPPORT_ENABLED);
+    }
+
     private final MockCandidateFilter next;
 
     public TypeBasedCandidateFilter(MockCandidateFilter next) {
@@ -232,11 +239,10 @@ public class TypeBasedCandidateFilter implements MockCandidateFilter {
             final List<Field> allRemainingCandidateFields,
             final Object injectee,
             final Field injectMocksField) {
-        boolean genericsSupportEnabled = System.getProperty(GENERICS_SUPPORT_DISABLED) == null;
         List<Object> mockTypeMatches = new ArrayList<>();
         for (Object mock : mocks) {
             if (candidateFieldToBeInjected.getType().isAssignableFrom(mock.getClass())) {
-                if (genericsSupportEnabled) {
+                if (GENERICS_SUPPORT_ENABLED) {
                     Type mockType = MockUtil.getMockSettings(mock).getGenericTypeToMock();
                     Type typeToMock = candidateFieldToBeInjected.getGenericType();
                     boolean bothHaveTypeInfo = typeToMock != null && mockType != null;
@@ -253,6 +259,12 @@ public class TypeBasedCandidateFilter implements MockCandidateFilter {
                                 "v6.5 field is assignable from mock class, but no generic type information is available ");
                         mockTypeMatches.add(mock);
                     }
+                } else if (Object.class.equals(candidateFieldToBeInjected.getType())) {
+                    System.out.println(
+                            "v6.6 Skipping Object typed field during injection analysis because we don't want to have multi matches, field:"
+                                    + candidateFieldToBeInjected
+                                    + ", mock:"
+                                    + mock);
                 } else {
                     mockTypeMatches.add(mock);
                 }
