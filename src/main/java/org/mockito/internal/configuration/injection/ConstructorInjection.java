@@ -37,14 +37,16 @@ import org.mockito.internal.util.reflection.FieldInitializer.ConstructorArgument
  */
 public class ConstructorInjection extends MockInjectionStrategy {
 
-    private static final String ALWAYS_TRY_NEXT_STRATEGY_ENABLED_KEY =
-            "mockito.constructorInjection.alwaysTryNextStrategy.enabled";
-    private static final boolean ALWAYS_TRY_NEXT_STRATEGY_ENABLED =
-            System.getProperty(ALWAYS_TRY_NEXT_STRATEGY_ENABLED_KEY) != null;
+    private static final String ALWAYS_TRY_NEXT_STRATEGY_DISABLED_KEY =
+            "mockito.constructorInjection.alwaysTryNextStrategy.disabled";
+    private static final boolean ALWAYS_TRY_NEXT_STRATEGY_DISABLED =
+            System.getProperty(ALWAYS_TRY_NEXT_STRATEGY_DISABLED_KEY) != null;
 
     static {
         System.out.println(
-                "v6 ALWAYS_TRY_NEXT_STRATEGY_ENABLED: " + ALWAYS_TRY_NEXT_STRATEGY_ENABLED);
+                ALWAYS_TRY_NEXT_STRATEGY_DISABLED_KEY
+                        + " present: "
+                        + ALWAYS_TRY_NEXT_STRATEGY_DISABLED);
     }
 
     public ConstructorInjection() {}
@@ -57,7 +59,7 @@ public class ConstructorInjection extends MockInjectionStrategy {
             FieldInitializationReport report =
                     new FieldInitializer(fieldOwner, field, simpleArgumentResolver).initialize();
 
-            if (ALWAYS_TRY_NEXT_STRATEGY_ENABLED) {
+            if (!ALWAYS_TRY_NEXT_STRATEGY_DISABLED) {
                 return false;
             }
             return report.fieldWasInitializedUsingContructorArgs();

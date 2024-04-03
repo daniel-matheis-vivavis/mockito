@@ -7,6 +7,11 @@ tasks.named("javadoc", Javadoc) {
     enabled = false
 }
 
+tasks.named("test") {
+    systemProperty "mockito.typeBasedCandidateFilter.genericsSupport.enabled", ""
+    systemProperty "mockito.constructorInjection.alwaysTryNextStrategy.disabled", ""
+}
+
 java {
     sourceCompatibility = 11
     targetCompatibility = 11

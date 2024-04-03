@@ -5,7 +5,7 @@
 package org.mockito.internal.configuration.injection;
 
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Field;
 import java.util.HashSet;
@@ -50,6 +50,7 @@ public class ConstructorInjectionTest {
     }
 
     private static class ArgConstructor {
+
         ArgConstructor(Observer observer) {}
     }
 }
