@@ -51,10 +51,11 @@ jobs:
       with:
         distribution: 'zulu'
         java-version: 17
+        cache: 'gradle'
 
     - name: 3. Validate Gradle wrapper
       if: matrix.java == 11 && matrix.entry.mock-maker == 'mock-maker-default' # SINGLE-MATRIX-JOB
-      uses: gradle/wrapper-validation-action@v2.1.1 # https://github.com/gradle/wrapper-validation-action
+      uses: gradle/wrapper-validation-action@v3.4.2 # https://github.com/gradle/wrapper-validation-action
 
     - name: 4. Build and check reproducibility of artifacts (single job only)
       if: matrix.java == 11 && matrix.entry.mock-maker == 'mock-maker-default' # SINGLE-MATRIX-JOB
@@ -89,11 +90,12 @@ jobs:
         --scan
 
     - name: 8. Upload coverage report
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v4
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
       with:
         files: build/reports/jacoco/mockitoCoverage/mockitoCoverage.xml
         fail_ci_if_error: true
-        token: ${{secrets.CODECOV_TOKEN}}
 
   #
   # Android build job
@@ -121,6 +123,7 @@ jobs:
       with:
         distribution: 'zulu'
         java-version: 17
+        cache: 'gradle'
 
     - name: 3. Enable KVM.
       run: |
@@ -180,7 +183,9 @@ jobs:
 
     # :androidTest:connectedCheck (which depends on :androidTest:createDebugAndroidTestCoverageReport) already generated coverage report.
     - name: 6. Upload coverage report
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v4
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
       with:
         files: subprojects/androidTest/build/reports/coverage/androidTest/debug/connected/report.xml
         fail_ci_if_error: true
@@ -211,6 +216,7 @@ jobs:
         with:
           distribution: 'zulu'
           java-version: 21
+          cache: 'gradle'
 
       - name: 3. Build and release
         run: >
